@@ -1323,20 +1323,32 @@ static int authorize(struct mg_connection *conn)
 	if ((view = loadview(ud, viewname)) != NULL) {
 
 		/*
-		 * If we have no 'auth' element, access is granted because nothing to check.
-		 * Otherwise, "auth" is an array of HA1 strings.
+		 * If we have no 'auth' element, access is granted because there is
+		 * nothing to check. If there is one, it protects the view and we
+		 * default to DENIED until a credential verifies. "auth" is
+		 * documented as an array of HA1 strings, but docroot/views/
+		 * jane.json.sample uses a single string, so accept both. Anything
+		 * else (empty array, number, object, ...) stays denied.
 		 */
 
 		if ((j = json_find_member(view, "auth")) != NULL) {
-			JsonNode *ha1;
+			authorized = FALSE;
 
-			json_foreach(ha1, j) {
-				char *hash_ha1 = ha1->string_;
+			if (j->tag == JSON_STRING) {
+				authorized = authorize_digest(conn, j->string_);
+				debug(ud, "AUTHTOKEN=%s, AUTHORIZED=%d", j->string_, authorized);
+			} else if (j->tag == JSON_ARRAY) {
+				JsonNode *ha1;
 
-				authorized = authorize_digest(conn, hash_ha1);
-				debug(ud, "AUTHTOKEN=%s, AUTHORIZED=%d", hash_ha1, authorized);
-				if (authorized)
-					break;
+				json_foreach(ha1, j) {
+					if (ha1->tag != JSON_STRING)
+						continue;
+
+					authorized = authorize_digest(conn, ha1->string_);
+					debug(ud, "AUTHTOKEN=%s, AUTHORIZED=%d", ha1->string_, authorized);
+					if (authorized)
+						break;
+				}
 			}
 		}
 		json_delete(view);

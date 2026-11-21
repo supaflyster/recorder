@@ -889,13 +889,13 @@ Recall that while we typically say `htdocs/views/` this path is actually configu
 
 ### Authentication
 
-If `view.json` contains an element called `auth`, it is assumed to be an array of strings, each of which are a 32-character [Digest authentication](https://en.wikipedia.org/wiki/Digest_access_authentication) SHA1 strings for the realm `owntracks-recorder`, for example:
+If `view.json` contains an element called `auth`, it is assumed to be an array of strings (a single string is also accepted), each of which are a 32-character [Digest authentication](https://en.wikipedia.org/wiki/Digest_access_authentication) SHA1 strings for the realm `owntracks-recorder`, for example:
 
 ```json
 "auth" : [ "225544f9acf99d18a8880c5ce844f303", "ba69e267302a7ef98e0862b9aae68cab" ]
 ```
 
-Each user/password digest combination will be able to access the view.
+Each user/password digest combination will be able to access the view. If `auth` is present but contains no valid digest string (for example an empty array), nobody can access the view.
 
 You create these strings with, say, the `htdigest` program or `contrib/new-view-auth.py`:
 
